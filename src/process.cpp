@@ -11,20 +11,14 @@ using std::string;
 using std::to_string;
 using std::vector;
 
-// TODO: Return this process's ID
-int Process::Pid() 
-{ 
-    vector<int> pids;
-
-    pids = LinuxParser::Pids();
-
-    for (int i=0; i < pids.size(); i++)
-    {
-        return pids[i];
-    }
-
-    return 0;
+Process::Process(int pid)
+{
+    pid_ = pid;
+    // cpu_ = LinuxParser::CpuUtilization();
 }
+
+// TODO: Return this process's ID
+int Process::Pid() { return pid_; }
 
 // TODO: Return this process's CPU utilization
 float Process::CpuUtilization() { return 0; }
