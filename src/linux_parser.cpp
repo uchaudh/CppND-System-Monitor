@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "linux_parser.h"
 
@@ -116,7 +117,27 @@ long LinuxParser::Jiffies() { return 0; }
 
 // TODO: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
+long LinuxParser::ActiveJiffies(int pid)
+{   long totaltime;
+  string line, value;
+  vector<string> values;
+  std::ifstream stream(kProcDirectory + std::to_string(pid) + kStatFilename);
+  if (stream.is_open()) {
+    std::getline(stream, line);
+    std::istringstream linestream(line);
+    while (linestream >> value) {
+      values.push_back(value);
+    }
+  }
+
+  // make sure parsing was correct and values was read
+  long utime = stol(values[13]);
+  long stime = stol(values[14]);
+  long cutime = stol(values[15]);
+  long cstime = stol(values[16]);
+
+  totaltime = utime + stime + cutime + cstime;
+  return totaltime / sysconf(_SC_CLK_TCK); }
 
 // TODO: Read and return the number of active jiffies for the system
 long LinuxParser::ActiveJiffies() { return 0; }
@@ -258,30 +279,45 @@ string LinuxParser::Uid(int pid)
 // Read and return the user associated with a process
 string LinuxParser::User(int pid)
 { 
-  string user,line,id,tempuser,temp, uid;
-  uid = Uid(pid);
+  std::unordered_map <string,string> user_dict;
+  string uid = Uid(pid);
+  string line;
+  string key, x, value;
   std::ifstream stream(kPasswordPath);
-  if(stream.is_open())
+  if (stream.is_open())
   {
-    while(std::getline(stream, line))
+    while (std::getline(stream,line))
     {
+      std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
-      std::replace(line.begin(),line.end(), ':', ' ');
-      linestream >> tempuser >> temp >> id;
-      if(id == uid)
+      linestream >> value >> x >> key;
+      if (user_dict.find(key) == user_dict.end())
       {
-        user = tempuser;
-        break;
+        user_dict[key] = value;
       }
     }
   }
-  return user;
+  return user_dict[uid];
 }
 
 // Read and return the uptime of a process
 long LinuxParser::UpTime(int pid) 
 { 
+  string line, value;
   long uptime;
-
+  vector<string> values;
+  std::ifstream stream(kProcDirectory + std::to_string(pid) + kStatFilename);
+  if (stream.is_open()) {
+    std::getline(stream, line);
+    std::istringstream linestream(line);
+    while (linestream >> value) {
+      values.push_back(value);
+    }
+  }
+  try {
+    uptime = stol(values[21]) / sysconf(_SC_CLK_TCK);
+  } catch (...) {
+    uptime = 0;
+  }
   return uptime;
 }

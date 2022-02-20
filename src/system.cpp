@@ -21,8 +21,26 @@ You need to properly format the uptime. Refer to the comments mentioned in forma
 // TODO: Return the system's CPU
 Processor& System::Cpu() { return cpu_; }
 
-// TODO: Return a container composed of the system's processes
-vector<Process>& System::Processes() { return processes_; }
+bool CpuUtilizationSort(Process p1, Process p2) {
+    return p1 < p2;
+}
+
+//Return a container composed of the system's processes
+vector<Process>& System::Processes() 
+{ 
+    vector<int> pids = LinuxParser::Pids();
+    processes_.clear();
+    for (long unsigned int i = 0; i < pids.size(); i++)
+    {
+        if(!LinuxParser::Ram(pids[i]).empty())
+        {
+            Process process(pids[i]);
+            processes_.push_back(process);
+        }
+    }
+    std::sort(processes_.rbegin(),processes_.rend(),CpuUtilizationSort);
+    return processes_;
+}
 
 std::string System::Kernel() 
 {
